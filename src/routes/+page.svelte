@@ -1,0 +1,368 @@
+<script>
+  import { searchPaints, paintData } from '$lib/paint-data.js';
+  import PaintResult from '$lib/components/PaintResult.svelte';
+
+  let query = $state('');
+  let isFocused = $state(false);
+  let inputRef = $state(null);
+
+  const results = $derived(searchPaints(query));
+
+  const suggestions = $derived.by(() => {
+    if (!query || query.trim().length < 2) return [];
+    const norm = query.toLowerCase().trim();
+    const seen = new Set();
+    const matches = [];
+    for (const entry of paintData) {
+      for (const eq of entry.equivalents) {
+        const key = `${eq.name}-${eq.range}`;
+        if (!seen.has(key) && eq.name.toLowerCase().includes(norm)) {
+          seen.add(key);
+          matches.push({ name: eq.name, range: eq.range, hex: entry.hex });
+        }
+      }
+    }
+    return matches.slice(0, 8);
+  });
+
+  const showSuggestions = $derived(isFocused && suggestions.length > 0 && query.length >= 2);
+
+  function selectSuggestion(name) {
+    query = name;
+    isFocused = false;
+    inputRef?.blur();
+  }
+
+  function clearQuery() {
+    query = '';
+    inputRef?.focus();
+  }
+
+  function handleBlur() {
+    setTimeout(() => isFocused = false, 200);
+  }
+</script>
+
+<main>
+  <!-- Header -->
+  <header>
+    <div class="header-inner">
+      <div class="logo-icon" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18.37 2.63 14 7l-1.59-1.59a2 2 0 0 0-2.82 0L8 7l9 9 1.59-1.59a2 2 0 0 0 0-2.82L17 10l4.37-4.37a2.12 2.12 0 1 0-3-3Z"></path>
+          <path d="M9 8c-2 3-4 3.5-7 4l8 10c2-1 6-5 6-7"></path>
+          <path d="M14.5 17.5 4.5 15"></path>
+        </svg>
+      </div>
+      <div>
+        <h1>Paint Equivalents Finder</h1>
+        <p class="subtitle">Find matching paints across miniature paint ranges</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- Search Section -->
+  <section class="search-section">
+    <div class="search-wrapper">
+      <div class="search-input-container">
+        <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.3-4.3"></path>
+        </svg>
+        <input
+          bind:this={inputRef}
+          bind:value={query}
+          onfocus={() => isFocused = true}
+          onblur={handleBlur}
+          type="text"
+          placeholder="Search for a paint name..."
+          aria-label="Search paint name"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        {#if query}
+          <button class="clear-btn" onclick={clearQuery} aria-label="Clear search">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 6 6 18"></path>
+              <path d="m6 6 12 12"></path>
+            </svg>
+          </button>
+        {/if}
+      </div>
+
+      <!-- Suggestions dropdown -->
+      {#if showSuggestions}
+        <div class="suggestions-dropdown">
+          {#each suggestions as s, i (s.name + s.range + i)}
+            <button class="suggestion-item" onclick={() => selectSuggestion(s.name)}>
+              <span class="suggestion-swatch" style="background-color: #{s.hex};" aria-hidden="true"></span>
+              <span class="suggestion-name">{s.name}</span>
+              <span class="suggestion-range">{s.range}</span>
+            </button>
+          {/each}
+        </div>
+      {/if}
+    </div>
+  </section>
+
+  <!-- Results -->
+  <section class="results-section">
+    {#if query.trim().length > 0 && results.length === 0}
+      <div class="empty-state">
+        <p class="empty-primary">No matching paints found for <strong>"{query}"</strong></p>
+        <p class="empty-secondary">Try searching for a paint name like "Blood Red" or "Mephiston"</p>
+      </div>
+    {/if}
+
+    {#if results.length > 0}
+      <p class="result-count">{results.length} {results.length === 1 ? 'match' : 'matches'} found</p>
+      <div class="results-list">
+        {#each results as entry, index (entry.hex + index)}
+          <PaintResult {entry} {query} />
+        {/each}
+      </div>
+    {/if}
+
+    {#if query.trim().length === 0}
+      <div class="empty-state">
+        <div class="empty-icon" aria-hidden="true">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.3-4.3"></path>
+          </svg>
+        </div>
+        <p class="empty-primary">Search by paint name to find equivalents across brands</p>
+        <p class="empty-secondary">Supports Citadel, Vallejo, Army Painter, Reaper, Scale 75 and more</p>
+      </div>
+    {/if}
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <p>Colour equivalents are approximate. Always test before committing to a project.</p>
+  </footer>
+</main>
+
+<style>
+  main {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Header */
+  header {
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-card);
+  }
+
+  .header-inner {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 20px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .logo-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: var(--fg);
+    color: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  h1 {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+  }
+
+  .subtitle {
+    font-size: 12px;
+    color: var(--fg-muted);
+    margin-top: 1px;
+  }
+
+  /* Search */
+  .search-section {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 28px 16px 0;
+    width: 100%;
+  }
+
+  .search-wrapper {
+    position: relative;
+  }
+
+  .search-input-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 16px;
+    color: var(--fg-muted);
+    pointer-events: none;
+  }
+
+  input {
+    width: 100%;
+    height: 52px;
+    padding: 0 48px 0 48px;
+    background: var(--bg-card);
+    color: var(--fg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 15px;
+    font-family: var(--font-sans);
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  input:focus {
+    border-color: var(--ring);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.04);
+  }
+
+  .clear-btn {
+    position: absolute;
+    right: 14px;
+    color: var(--fg-muted);
+    padding: 4px;
+    border-radius: 6px;
+    transition: color 0.15s;
+    display: flex;
+  }
+  .clear-btn:hover {
+    color: var(--fg);
+  }
+
+  /* Suggestions */
+  .suggestions-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    z-index: 50;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+  }
+
+  .suggestion-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    transition: background-color 0.1s;
+  }
+  .suggestion-item:last-child {
+    border-bottom: none;
+  }
+  .suggestion-item:hover {
+    background-color: var(--bg-hover);
+  }
+
+  .suggestion-swatch {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+  }
+
+  .suggestion-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--fg);
+  }
+
+  .suggestion-range {
+    font-size: 11px;
+    color: var(--fg-muted);
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  /* Results */
+  .results-section {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 28px 16px 40px;
+    width: 100%;
+    flex: 1;
+  }
+
+  .result-count {
+    font-size: 12px;
+    color: var(--fg-muted);
+    margin-bottom: 16px;
+    padding-left: 4px;
+  }
+
+  .results-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 56px 16px;
+  }
+
+  .empty-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    color: var(--fg-muted);
+  }
+
+  .empty-primary {
+    font-size: 14px;
+    color: var(--fg-muted);
+  }
+  .empty-primary strong {
+    color: var(--fg);
+  }
+
+  .empty-secondary {
+    font-size: 12px;
+    color: var(--fg-subtle);
+    margin-top: 6px;
+  }
+
+  /* Footer */
+  footer {
+    border-top: 1px solid var(--border);
+    margin-top: auto;
+  }
+
+  footer p {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 20px 16px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--fg-subtle);
+  }
+</style>

@@ -71,7 +71,7 @@
         </svg>
       </div>
       <div>
-        <h1>Paint Equivalents Finder</h1>
+        <h1>Paint Matcher</h1>
         <p class="subtitle">Find matching paints across miniature paint ranges</p>
       </div>
     </div>

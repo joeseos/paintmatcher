@@ -6,10 +6,14 @@
   let isFocused = $state(false);
   let inputRef = $state(null);
 
-  const results = $derived(searchPaints(query));
+  /** @type {import('$lib/paint-data.js').PaintEntry | null} */
+  let selectedEntry = $state(null);
+  let selectedName = $state('');
 
   const suggestions = $derived.by(() => {
     if (!query || query.trim().length < 2) return [];
+    // Don't show suggestions if the user already selected a result and hasn't changed the query
+    if (selectedEntry && query === selectedName) return [];
     const norm = query.toLowerCase().trim();
     const seen = new Set();
     const matches = [];
@@ -18,7 +22,7 @@
         const key = `${eq.name}-${eq.range}`;
         if (!seen.has(key) && eq.name.toLowerCase().includes(norm)) {
           seen.add(key);
-          matches.push({ name: eq.name, range: eq.range, hex: entry.hex });
+          matches.push({ name: eq.name, range: eq.range, hex: entry.hex, entry });
         }
       }
     }
@@ -27,15 +31,27 @@
 
   const showSuggestions = $derived(isFocused && suggestions.length > 0 && query.length >= 2);
 
-  function selectSuggestion(name) {
+  function selectSuggestion(name, entry) {
     query = name;
+    selectedName = name;
+    selectedEntry = entry;
     isFocused = false;
     inputRef?.blur();
   }
 
   function clearQuery() {
     query = '';
+    selectedEntry = null;
+    selectedName = '';
     inputRef?.focus();
+  }
+
+  function handleInput() {
+    // When the user types again after selecting, clear the selection
+    if (selectedEntry && query !== selectedName) {
+      selectedEntry = null;
+      selectedName = '';
+    }
   }
 
   function handleBlur() {
@@ -74,6 +90,7 @@
           bind:value={query}
           onfocus={() => isFocused = true}
           onblur={handleBlur}
+          oninput={handleInput}
           type="text"
           placeholder="Search for a paint name..."
           aria-label="Search paint name"
@@ -94,7 +111,7 @@
       {#if showSuggestions}
         <div class="suggestions-dropdown">
           {#each suggestions as s, i (s.name + s.range + i)}
-            <button class="suggestion-item" onclick={() => selectSuggestion(s.name)}>
+            <button class="suggestion-item" onclick={() => selectSuggestion(s.name, s.entry)}>
               <span class="suggestion-swatch" style="background-color: #{s.hex};" aria-hidden="true"></span>
               <span class="suggestion-name">{s.name}</span>
               <span class="suggestion-range">{s.range}</span>
@@ -107,23 +124,17 @@
 
   <!-- Results -->
   <section class="results-section">
-    {#if query.trim().length > 0 && results.length === 0}
+    {#if selectedEntry}
+      <p class="result-count">Equivalents for <strong>{selectedName}</strong></p>
+      <div class="results-list">
+        <PaintResult entry={selectedEntry} query={selectedName} />
+      </div>
+    {:else if query.trim().length >= 2 && !isFocused && suggestions.length === 0}
       <div class="empty-state">
         <p class="empty-primary">No matching paints found for <strong>"{query}"</strong></p>
         <p class="empty-secondary">Try searching for a paint name like "Blood Red" or "Mephiston"</p>
       </div>
-    {/if}
-
-    {#if results.length > 0}
-      <p class="result-count">{results.length} {results.length === 1 ? 'match' : 'matches'} found</p>
-      <div class="results-list">
-        {#each results as entry, index (entry.hex + index)}
-          <PaintResult {entry} {query} />
-        {/each}
-      </div>
-    {/if}
-
-    {#if query.trim().length === 0}
+    {:else}
       <div class="empty-state">
         <div class="empty-icon" aria-hidden="true">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -307,10 +318,13 @@
   }
 
   .result-count {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--fg-muted);
     margin-bottom: 16px;
     padding-left: 4px;
+  }
+  .result-count strong {
+    color: var(--fg);
   }
 
   .results-list {

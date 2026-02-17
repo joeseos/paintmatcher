@@ -4,7 +4,7 @@
 </script>
 
 <svelte:head>
-  <title>Paint Equivalents Finder</title>
+  <title>Paint Matcher</title>
 </svelte:head>
 
 {@render children()}

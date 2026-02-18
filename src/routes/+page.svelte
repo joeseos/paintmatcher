@@ -13,17 +13,25 @@
   let selectedEntry = $state(null);
   let selectedName = $state('');
 
-  // --- Fetch Data ---
-  onMount(async () => {
-    try {
-      const response = await fetch('/api/paints');
-      paintData = await response.json();
-    } catch (e) {
-      console.error("Failed to load paint data:", e);
-    } finally {
-      isLoading = false;
-    }
-  });
+// --- Fetch Data ---
+  onMount(async () => {
+    try {
+      // Removing the leading slash makes the request relative to your current location
+      const response = await fetch('api/paints'); 
+      
+      if (!response.ok) {
+        const text = await response.text();
+        // If it's still 404, this will log the Netlify error page text to your console
+        throw new Error(`Server responded with ${response.status}`);
+      }
+
+      paintData = await response.json();
+    } catch (e) {
+      console.error("Failed to load paint data:", e);
+    } finally {
+      isLoading = false;
+    }
+  });
 
   // --- Logic ---
   const suggestions = $derived.by(() => {

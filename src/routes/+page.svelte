@@ -148,10 +148,34 @@
     {/if}
   </section>
 
-  <!-- Footer -->
-  <footer>
-    <p>Colour equivalents are approximate. Always test before committing to a project.</p>
-  </footer>
+<!-- Footer -->
+<footer>
+  <div class="footer-inner">
+    <p class="footer-note">
+      Colour equivalents are approximate. Always test before committing to a project.
+    </p>
+
+    <div class="coffee">
+      <p class="coffee-text">
+        Enjoying this tool? Consider supporting its development:
+      </p>
+
+      <a
+        href="https://buymeacoffee.com/mundamanager"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="coffee-link"
+      >
+        <img
+          src="https://cdn.buymeacoffee.com/buttons/v2/default-orange.png"
+          alt="Buy Me A Coffee"
+          class="coffee-img"
+        />
+      </a>
+    </div>
+  </div>
+</footer>
+
 </main>
 
 <style>

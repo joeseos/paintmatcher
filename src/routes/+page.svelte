@@ -152,7 +152,7 @@
 <footer>
   <div class="footer-inner">
     <p class="footer-note">
-      Colour equivalents are approximate. Always test before committing to a project.
+      Colour equivalents are approximate. Always test before committing to a project. Color matcher is based on dakkadakka wiki data and all credits given to them.
     </p>
 
     <div class="coffee">

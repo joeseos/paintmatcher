@@ -389,18 +389,46 @@
     margin-top: 6px;
   }
 
-  /* Footer */
-  footer {
-    border-top: 1px solid var(--border);
-    margin-top: auto;
-  }
+footer {
+  border-top: 1px solid var(--border);
+  margin-top: auto;
+}
 
-  footer p {
-    max-width: 680px;
-    margin: 0 auto;
-    padding: 20px 16px;
-    text-align: center;
-    font-size: 12px;
-    color: var(--fg-subtle);
-  }
+.footer-inner {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 20px 16px 28px;
+  text-align: center;
+}
+
+.footer-note {
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+
+/* Coffee section */
+.coffee {
+  margin-top: 16px;
+}
+
+.coffee-text {
+  font-size: 11px;
+  color: var(--fg-muted);
+  margin-bottom: 10px;
+}
+
+.coffee-link {
+  display: inline-block;
+  transition: opacity 0.15s ease;
+}
+
+.coffee-link:hover {
+  opacity: 0.8;
+}
+
+.coffee-img {
+  height: 32px;
+  width: auto;
+  max-width: 140px;
+}
 </style>

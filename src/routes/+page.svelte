@@ -16,13 +16,8 @@
   // --- Fetch Data ---
   onMount(async () => {
     try {
-      // Relative path works best for Netlify sub-routes
       const response = await fetch('api/paints'); 
-      
-      if (!response.ok) {
-        throw new Error(`Server responded with ${response.status}`);
-      }
-
+      if (!response.ok) throw new Error(`Server responded with ${response.status}`);
       paintData = await response.json();
     } catch (e) {
       console.error("Failed to load paint data:", e);
@@ -77,70 +72,71 @@
   }
 
   function handleBlur() {
-    // Small delay to allow click events on suggestions to fire before they disappear
     setTimeout(() => isFocused = false, 200);
   }
 </script>
 
 <main>
-  <header>
-    <div class="header-inner">
-      <div class="logo-icon" aria-hidden="true">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M18.37 2.63 14 7l-1.59-1.59a2 2 0 0 0-2.82 0L8 7l9 9 1.59-1.59a2 2 0 0 0 0-2.82L17 10l4.37-4.37a2.12 2.12 0 1 0-3-3Z"></path>
-          <path d="M9 8c-2 3-4 3.5-7 4l8 10c2-1 6-5 6-7"></path>
-          <path d="M14.5 17.5 4.5 15"></path>
-        </svg>
+  <div class="sticky-wrapper">
+    <header>
+      <div class="header-inner">
+        <div class="logo-icon" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18.37 2.63 14 7l-1.59-1.59a2 2 0 0 0-2.82 0L8 7l9 9 1.59-1.59a2 2 0 0 0 0-2.82L17 10l4.37-4.37a2.12 2.12 0 1 0-3-3Z"></path>
+            <path d="M9 8c-2 3-4 3.5-7 4l8 10c2-1 6-5 6-7"></path>
+            <path d="M14.5 17.5 4.5 15"></path>
+          </svg>
+        </div>
+        <div>
+          <h1>Paint Matcher</h1>
+          <p class="subtitle">Find matching paints across miniature paint ranges</p>
+        </div>
       </div>
-      <div>
-        <h1>Paint Matcher</h1>
-        <p class="subtitle">Find matching paints across miniature paint ranges</p>
-      </div>
-    </div>
-  </header>
+    </header>
 
-  <section class="search-section">
-    <div class="search-wrapper">
-      <div class="search-input-container">
-        <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="8"></circle>
-          <path d="m21 21-4.3-4.3"></path>
-        </svg>
-        <input
-          bind:this={inputRef}
-          bind:value={query}
-          onfocus={() => isFocused = true}
-          onblur={handleBlur}
-          oninput={handleInput}
-          type="text"
-          placeholder="Search for a paint name..." 
-          aria-label="Search paint name"
-          autocomplete="off"
-          spellcheck="false"
-        />
-        {#if query}
-          <button class="clear-btn" onclick={clearQuery} aria-label="Clear search">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M18 6 6 18"></path>
-              <path d="m6 6 12 12"></path>
-            </svg>
-          </button>
+    <section class="search-section">
+      <div class="search-wrapper">
+        <div class="search-input-container">
+          <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.3-4.3"></path>
+          </svg>
+          <input
+            bind:this={inputRef}
+            bind:value={query}
+            onfocus={() => isFocused = true}
+            onblur={handleBlur}
+            oninput={handleInput}
+            type="text"
+            placeholder="Search for a paint name..." 
+            aria-label="Search paint name"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          {#if query}
+            <button class="clear-btn" onclick={clearQuery} aria-label="Clear search">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 6 6 18"></path>
+                <path d="m6 6 12 12"></path>
+              </svg>
+            </button>
+          {/if}
+        </div>
+
+        {#if showSuggestions}
+          <div class="suggestions-dropdown">
+            {#each suggestions as s, i (s.name + s.range + i)}
+              <button class="suggestion-item" onclick={() => selectSuggestion(s.name, s.entry)}>
+                <span class="suggestion-swatch" style="background-color: #{s.hex};" aria-hidden="true"></span>
+                <span class="suggestion-name">{s.name}</span>
+                <span class="suggestion-range">{s.range}</span>
+              </button>
+            {/each}
+          </div>
         {/if}
       </div>
-
-      {#if showSuggestions}
-        <div class="suggestions-dropdown">
-          {#each suggestions as s, i (s.name + s.range + i)}
-            <button class="suggestion-item" onclick={() => selectSuggestion(s.name, s.entry)}>
-              <span class="suggestion-swatch" style="background-color: #{s.hex};" aria-hidden="true"></span>
-              <span class="suggestion-name">{s.name}</span>
-              <span class="suggestion-range">{s.range}</span>
-            </button>
-          {/each}
-        </div>
-      {/if}
-    </div>
-  </section>
+    </section>
+  </div>
 
   <section class="results-section">
     {#if selectedEntry}
@@ -172,23 +168,10 @@
       <p class="footer-note">
         Colour equivalents are approximate. Always test before committing to a project. Color matcher is based on dakkadakka wiki data and all credits given to them.
       </p>
-
       <div class="coffee">
-        <p class="coffee-text">
-          Enjoying this tool? Consider supporting its development:
-        </p>
-
-        <a
-          href="https://buymeacoffee.com/joesoes"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="coffee-link"
-        >
-          <img
-            src="https://cdn.buymeacoffee.com/buttons/v2/default-orange.png"
-            alt="Buy Me A Coffee"
-            class="coffee-img"
-          />
+        <p class="coffee-text">Enjoying this tool? Consider supporting its development:</p>
+        <a href="https://buymeacoffee.com/joesoes" target="_blank" rel="noopener noreferrer" class="coffee-link">
+          <img src="https://cdn.buymeacoffee.com/buttons/v2/default-orange.png" alt="Buy Me A Coffee" class="coffee-img" />
         </a>
       </div>
     </div>
@@ -202,24 +185,31 @@
     flex-direction: column;
   }
 
-  /* Header */
-  header {
+  /* --- Sticky Logic --- */
+  .sticky-wrapper {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--bg); /* Keeps results from showing behind the bar */
     border-bottom: 1px solid var(--border);
+  }
+
+  header {
     background: var(--bg-card);
   }
 
   .header-inner {
     max-width: 680px;
     margin: 0 auto;
-    padding: 20px 16px;
+    padding: 16px 16px; /* Tightened from 20px */
     display: flex;
     align-items: center;
     gap: 14px;
   }
 
   .logo-icon {
-    width: 42px;
-    height: 42px;
+    width: 38px; /* Slightly smaller for sticky layout */
+    height: 38px;
     border-radius: 10px;
     background: var(--fg);
     color: var(--bg);
@@ -230,23 +220,21 @@
   }
 
   h1 {
-    font-size: 17px;
+    font-size: 16px;
     font-weight: 600;
     letter-spacing: -0.01em;
-    line-height: 1.3;
+    line-height: 1.2;
   }
 
   .subtitle {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--fg-muted);
-    margin-top: 1px;
   }
 
-  /* Search */
   .search-section {
     max-width: 680px;
     margin: 0 auto;
-    padding: 28px 16px 0;
+    padding: 12px 16px 16px; /* Tightened from 28px */
     width: 100%;
   }
 
@@ -267,23 +255,21 @@
     pointer-events: none;
   }
 
-  /* FIX: Use 16px font-size to prevent iOS Safari 
-     from auto-zooming when the input is focused.
-  */
   input {
     width: 100%;
-    height: 52px;
+    height: 48px; /* Slightly shorter for sticky layout */
     padding: 0 48px 0 48px;
     background: var(--bg-card);
     color: var(--fg);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    font-size: 16px; 
+    font-size: 16px; /* Prevents iOS Zoom */
     font-family: var(--font-sans);
     transition: border-color 0.15s, box-shadow 0.15s;
     outline: none;
     -webkit-appearance: none;
   }
+
   input:focus {
     border-color: var(--ring);
     box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.04);
@@ -295,17 +281,13 @@
     color: var(--fg-muted);
     padding: 4px;
     border-radius: 6px;
-    transition: color 0.15s;
     display: flex;
     background: transparent;
     border: none;
     cursor: pointer;
   }
-  .clear-btn:hover {
-    color: var(--fg);
-  }
 
-  /* Suggestions */
+  /* Suggestions Dropdown */
   .suggestions-dropdown {
     position: absolute;
     top: calc(100% + 8px);
@@ -326,21 +308,14 @@
     gap: 12px;
     padding: 11px 16px;
     text-align: left;
+    border: none;
     border-bottom: 1px solid var(--border);
-    transition: background-color 0.1s;
-    cursor: pointer;
     background: transparent;
-    border-left: none;
-    border-right: none;
-    border-top: none;
+    cursor: pointer;
     color: inherit;
   }
-  .suggestion-item:last-child {
-    border-bottom: none;
-  }
-  .suggestion-item:hover {
-    background-color: var(--bg-hover);
-  }
+  .suggestion-item:last-child { border-bottom: none; }
+  .suggestion-item:hover { background-color: var(--bg-hover); }
 
   .suggestion-swatch {
     width: 16px;
@@ -349,25 +324,14 @@
     flex-shrink: 0;
     border: 1px solid var(--border);
   }
+  .suggestion-name { font-size: 13px; font-weight: 500; }
+  .suggestion-range { font-size: 11px; color: var(--fg-muted); margin-left: auto; }
 
-  .suggestion-name {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--fg);
-  }
-
-  .suggestion-range {
-    font-size: 11px;
-    color: var(--fg-muted);
-    margin-left: auto;
-    flex-shrink: 0;
-  }
-
-  /* Results */
+  /* Results Section */
   .results-section {
     max-width: 680px;
     margin: 0 auto;
-    padding: 28px 16px 40px;
+    padding: 24px 16px 40px;
     width: 100%;
     flex: 1;
   }
@@ -378,9 +342,6 @@
     margin-bottom: 16px;
     padding-left: 4px;
   }
-  .result-count strong {
-    color: var(--fg);
-  }
 
   .results-list {
     display: flex;
@@ -388,11 +349,7 @@
     gap: 16px;
   }
 
-  .empty-state {
-    text-align: center;
-    padding: 56px 16px;
-  }
-
+  .empty-state { text-align: center; padding: 56px 16px; }
   .empty-icon {
     width: 56px;
     height: 56px;
@@ -406,59 +363,14 @@
     color: var(--fg-muted);
   }
 
-  .empty-primary {
-    font-size: 14px;
-    color: var(--fg-muted);
-  }
-  .empty-primary strong {
-    color: var(--fg);
-  }
+  .empty-primary { font-size: 14px; color: var(--fg-muted); }
+  .empty-secondary { font-size: 12px; color: var(--fg-subtle); margin-top: 6px; }
 
-  .empty-secondary {
-    font-size: 12px;
-    color: var(--fg-subtle);
-    margin-top: 6px;
-  }
-
-  footer {
-    border-top: 1px solid var(--border);
-    margin-top: auto;
-  }
-
-  .footer-inner {
-    max-width: 680px;
-    margin: 0 auto;
-    padding: 20px 16px 28px;
-    text-align: center;
-  }
-
-  .footer-note {
-    font-size: 12px;
-    color: var(--fg-subtle);
-  }
-
-  .coffee {
-    margin-top: 16px;
-  }
-
-  .coffee-text {
-    font-size: 11px;
-    color: var(--fg-muted);
-    margin-bottom: 10px;
-  }
-
-  .coffee-link {
-    display: inline-block;
-    transition: opacity 0.15s ease;
-  }
-
-  .coffee-link:hover {
-    opacity: 0.8;
-  }
-
-  .coffee-img {
-    height: 32px;
-    width: auto;
-    max-width: 140px;
-  }
+  footer { border-top: 1px solid var(--border); margin-top: auto; }
+  .footer-inner { max-width: 680px; margin: 0 auto; padding: 20px 16px 28px; text-align: center; }
+  .footer-note { font-size: 12px; color: var(--fg-subtle); }
+  .coffee { margin-top: 16px; }
+  .coffee-text { font-size: 11px; color: var(--fg-muted); margin-bottom: 10px; }
+  .coffee-link { display: inline-block; transition: opacity 0.15s ease; }
+  .coffee-img { height: 32px; width: auto; max-width: 140px; }
 </style>

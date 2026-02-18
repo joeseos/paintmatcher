@@ -105,18 +105,18 @@
           <circle cx="11" cy="11" r="8"></circle>
           <path d="m21 21-4.3-4.3"></path>
         </svg>
-        <input
-          bind:this={inputRef}
-          bind:value={query}
-          onfocus={() => isFocused = true}
-          onblur={handleBlur}
-          oninput={handleInput}
-          type="text"
-          placeholder={isLoading ? "Loading database..." : "Search for a paint name..."}
-          aria-label="Search paint name"
-          autocomplete="off"
-          spellcheck="false"
-        />
+<input
+  bind:this={inputRef}
+  bind:value={query}
+  onfocus={() => isFocused = true}
+  onblur={handleBlur}
+  oninput={handleInput}
+  type="text"
+  placeholder="Search for a paint name..." 
+  aria-label="Search paint name"
+  autocomplete="off"
+  spellcheck="false"
+/>
         {#if query}
           <button class="clear-btn" onclick={clearQuery} aria-label="Clear search">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

@@ -13,25 +13,23 @@
   let selectedEntry = $state(null);
   let selectedName = $state('');
 
-// --- Fetch Data ---
-  onMount(async () => {
-    try {
-      // Removing the leading slash makes the request relative to your current location
-      const response = await fetch('api/paints'); 
+  // --- Fetch Data ---
+  onMount(async () => {
+    try {
+      // Relative path works best for Netlify sub-routes
+      const response = await fetch('api/paints'); 
       
       if (!response.ok) {
-        const text = await response.text();
-        // If it's still 404, this will log the Netlify error page text to your console
         throw new Error(`Server responded with ${response.status}`);
       }
 
-      paintData = await response.json();
-    } catch (e) {
-      console.error("Failed to load paint data:", e);
-    } finally {
-      isLoading = false;
-    }
-  });
+      paintData = await response.json();
+    } catch (e) {
+      console.error("Failed to load paint data:", e);
+    } finally {
+      isLoading = false;
+    }
+  });
 
   // --- Logic ---
   const suggestions = $derived.by(() => {
@@ -114,7 +112,7 @@
           onblur={handleBlur}
           oninput={handleInput}
           type="text"
-          placeholder={isLoading ? "Loading paints..." : "Search for a paint name..."}
+          placeholder={isLoading ? "Loading database..." : "Search for a paint name..."}
           aria-label="Search paint name"
           autocomplete="off"
           spellcheck="false"
@@ -144,17 +142,12 @@
   </section>
 
   <section class="results-section">
-    {#if isLoading}
-      <div class="empty-state">
-        <div class="loading-spinner"></div>
-        <p class="empty-primary">Syncing paint database...</p>
-      </div>
-    {:else if selectedEntry}
+    {#if selectedEntry}
       <p class="result-count">Equivalents for <strong>{selectedName}</strong></p>
       <div class="results-list">
         <PaintResult entry={selectedEntry} query={selectedName} />
       </div>
-    {:else if query.trim().length >= 2 && !isFocused && suggestions.length === 0}
+    {:else if query.trim().length >= 2 && !isFocused && suggestions.length === 0 && !isLoading}
       <div class="empty-state">
         <p class="empty-primary">No matching paints found for <strong>"{query}"</strong></p>
         <p class="empty-secondary">Try searching for a paint name like "Blood Red" or "Mephiston"</p>
@@ -326,6 +319,7 @@
     text-align: left;
     border-bottom: 1px solid var(--border);
     transition: background-color 0.1s;
+    cursor: pointer;
   }
   .suggestion-item:last-child {
     border-bottom: none;
@@ -453,20 +447,5 @@
     height: 32px;
     width: auto;
     max-width: 140px;
-  }
-
-  /* Loading Spinner */
-  .loading-spinner {
-    width: 24px;
-    height: 24px;
-    border: 2px solid var(--border);
-    border-top-color: var(--fg);
-    border-radius: 50%;
-    margin: 0 auto 16px;
-    animation: spin 0.8s linear infinite;
-  }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
   }
 </style>

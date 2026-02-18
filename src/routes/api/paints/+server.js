@@ -1,3 +1,9 @@
+import { json } from '@sveltejs/kit';
+
+/**
+ * Transforms flat CSV rows into a grouped format: 
+ * { hex: "ffffff", equivalents: [{name: "...", range: "..."}] }
+ */
 function transform(rows) {
   const map = new Map();
 
@@ -24,19 +30,39 @@ function transform(rows) {
   return Array.from(map.values());
 }
 
-export const GET = async ({ fetch, setHeaders }) => {
-  const url =
-    "https://opensheet.elk.sh/11_MINVNU2k1k6grZ3T03JGjOEdTdo4LZa6ZyidfklTw/Sheet1";
+export const GET = async ({ fetch, setHeaders, url: requestUrl }) => {
+  const sheetUrl = "https://opensheet.elk.sh/11_MINVNU2k1k6grZ3T03JGjOEdTdo4LZa6ZyidfklTw/Sheet1";
 
-  const res = await fetch(url);
-  const rows = await res.json();
+  // Check if "?refresh=true" is in the URL
+  const forceRefresh = requestUrl.searchParams.get('refresh') === 'true';
 
-  const data = transform(rows);
+  try {
+    const res = await fetch(sheetUrl);
+    
+    if (!res.ok) {
+      throw new Error(`Failed to fetch from Google Sheets: ${res.statusText}`);
+    }
 
-  // 24h cache
-  setHeaders({
-    "cache-control": "public, max-age=86400, stale-while-revalidate=3600"
-  });
+    const rows = await res.json();
+    const data = transform(rows);
 
-  return new Response(JSON.stringify(data));
+    if (forceRefresh) {
+      // Bypass cache for this specific request
+      setHeaders({
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "pragma": "no-cache",
+        "expires": "0"
+      });
+    } else {
+      // Standard 24h cache for regular users
+      setHeaders({
+        "cache-control": "public, max-age=86400, stale-while-revalidate=3600"
+      });
+    }
+
+    return json(data);
+  } catch (error) {
+    console.error('API Error:', error);
+    return json({ error: 'Failed to load paint data' }, { status: 500 });
+  }
 };

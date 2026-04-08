@@ -81,11 +81,7 @@
     <header>
       <div class="header-inner">
         <div class="logo-icon" aria-hidden="true">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18.37 2.63 14 7l-1.59-1.59a2 2 0 0 0-2.82 0L8 7l9 9 1.59-1.59a2 2 0 0 0 0-2.82L17 10l4.37-4.37a2.12 2.12 0 1 0-3-3Z"></path>
-            <path d="M9 8c-2 3-4 3.5-7 4l8 10c2-1 6-5 6-7"></path>
-            <path d="M14.5 17.5 4.5 15"></path>
-          </svg>
+          <img src="/web-app-manifest-192x192.png" alt="" width="38" height="38" />
         </div>
         <div>
           <h1>Paint Matcher</h1>
@@ -208,15 +204,20 @@
   }
 
   .logo-icon {
-    width: 38px; /* Slightly smaller for sticky layout */
+    width: 38px;
     height: 38px;
     border-radius: 10px;
-    background: var(--fg);
-    color: var(--bg);
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  .logo-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
   }
 
   h1 {

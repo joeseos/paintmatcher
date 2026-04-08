@@ -178,8 +178,7 @@
     <div class="footer-inner">
       <p class="footer-note">
         Equivalents computed using Delta E (CIE76) perceptual color distance.
-        Hex data from <a href="https://github.com/redgrimm/paint-conversion" target="_blank" rel="noopener noreferrer">RedGrimm</a> and <a href="https://www.dakkadakka.com/wiki/en/paint_range_compatibility_chart" target="_blank" rel="noopener noreferrer">DakkaDakka</a>.
-        Always test before committing to a project.
+        Hex data from several different sources. Always test before committing to a project.
       </p>
       <div class="coffee">
         <p class="coffee-text">Enjoying this tool? Consider supporting its development:</p>

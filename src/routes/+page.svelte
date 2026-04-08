@@ -170,7 +170,7 @@
   <footer>
     <div class="footer-inner">
       <p class="footer-note">
-        Equivalents computed using Delta E (CIE76) perceptual color distance.
+        Equivalents computed using CIEDE2000 perceptual color distance.
         Hex data from several different sources. Always test before committing to a project.
       </p>
       <div class="coffee">

@@ -54,17 +54,46 @@ export function hexToLab(hex) {
 }
 
 /**
- * Delta E (CIE76) between two LAB colors.
+ * CIEDE2000 color difference between two LAB colors.
+ * More perceptually accurate than CIE76, especially for blues and low-chroma colors.
+ * Based on public domain implementation by Michel Leonard.
  * @param {{ L: number, a: number, b: number }} lab1
  * @param {{ L: number, a: number, b: number }} lab2
  * @returns {number}
  */
 export function deltaE(lab1, lab2) {
-  return Math.sqrt(
-    Math.pow(lab1.L - lab2.L, 2) +
-      Math.pow(lab1.a - lab2.a, 2) +
-      Math.pow(lab1.b - lab2.b, 2),
-  );
+  const k_l = 1.0, k_c = 1.0, k_h = 1.0;
+  let n = (Math.sqrt(lab1.a * lab1.a + lab1.b * lab1.b) + Math.sqrt(lab2.a * lab2.a + lab2.b * lab2.b)) * 0.5;
+  n = n * n * n * n * n * n * n;
+  n = 1.0 + 0.5 * (1.0 - Math.sqrt(n / (n + 6103515625.0)));
+  const c_1 = Math.sqrt(lab1.a * lab1.a * n * n + lab1.b * lab1.b);
+  const c_2 = Math.sqrt(lab2.a * lab2.a * n * n + lab2.b * lab2.b);
+  let h_1 = Math.atan2(lab1.b, lab1.a * n), h_2 = Math.atan2(lab2.b, lab2.a * n);
+  h_1 += 2.0 * Math.PI * (h_1 < 0.0);
+  h_2 += 2.0 * Math.PI * (h_2 < 0.0);
+  n = Math.abs(h_2 - h_1);
+  if (Math.PI - 1E-14 < n && n < Math.PI + 1E-14) n = Math.PI;
+  let h_m = (h_1 + h_2) * 0.5, h_d = (h_2 - h_1) * 0.5;
+  if (Math.PI < n) {
+    h_d += Math.PI;
+    h_m += Math.PI;
+  }
+  const p = 36.0 * h_m - 55.0 * Math.PI;
+  n = (c_1 + c_2) * 0.5;
+  n = n * n * n * n * n * n * n;
+  const r_t = -2.0 * Math.sqrt(n / (n + 6103515625.0))
+    * Math.sin(Math.PI / 3.0 * Math.exp(p * p / (-25.0 * Math.PI * Math.PI)));
+  n = (lab1.L + lab2.L) * 0.5;
+  n = (n - 50.0) * (n - 50.0);
+  const l = (lab2.L - lab1.L) / (k_l * (1.0 + 0.015 * n / Math.sqrt(20.0 + n)));
+  const t = 1.0 + 0.24 * Math.sin(2.0 * h_m + Math.PI * 0.5)
+    + 0.32 * Math.sin(3.0 * h_m + 8.0 * Math.PI / 15.0)
+    - 0.17 * Math.sin(h_m + Math.PI / 3.0)
+    - 0.20 * Math.sin(4.0 * h_m + 3.0 * Math.PI / 20.0);
+  n = c_1 + c_2;
+  const h = 2.0 * Math.sqrt(c_1 * c_2) * Math.sin(h_d) / (k_h * (1.0 + 0.0075 * n * t));
+  const c = (c_2 - c_1) / (k_c * (1.0 + 0.0225 * n));
+  return Math.sqrt(l * l + h * h + c * c + c * h * r_t);
 }
 
 /**

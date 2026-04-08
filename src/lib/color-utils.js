@@ -88,7 +88,7 @@ export function getContrastColor(hex) {
  * @returns {MatchQuality}
  */
 export function matchQuality(de) {
-  if (de < 5) return "match";
+  if (de < 3) return "match";
   if (de < 10) return "near";
   return "poor";
 }

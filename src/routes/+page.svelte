@@ -163,13 +163,6 @@
           </svg>
         </div>
         <p class="empty-primary">Search by paint name to find equivalents across brands</p>
-        <p class="empty-secondary">
-          {#if isLoading}
-            Loading paints...
-          {:else}
-            {allPaints.length} paints across {new Set(allPaints.map(p => p.range)).size} ranges — matched by color distance (ΔE)
-          {/if}
-        </p>
       </div>
     {/if}
   </section>

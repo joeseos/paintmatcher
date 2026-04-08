@@ -68,8 +68,8 @@
           </div>
           <div class="equiv-meta">
             <span class="equiv-hex">#{m.paint.hex}</span>
-            <span class="delta-badge match-badge" title="Delta E {m.deltaE.toFixed(1)}">
-              ΔE {m.deltaE.toFixed(1)}
+            <span class="delta-badge match-badge" title="ΔE {m.deltaE.toFixed(1)}">
+              {Math.round(Math.max(0, 100 - (m.deltaE / 10) * 100))}%
             </span>
           </div>
         </div>
@@ -92,8 +92,8 @@
           </div>
           <div class="equiv-meta">
             <span class="equiv-hex">#{m.paint.hex}</span>
-            <span class="delta-badge near-badge" title="Delta E {m.deltaE.toFixed(1)}">
-              ΔE {m.deltaE.toFixed(1)}
+            <span class="delta-badge near-badge" title="ΔE {m.deltaE.toFixed(1)}">
+              {Math.round(Math.max(0, 100 - (m.deltaE / 10) * 100))}%
             </span>
           </div>
         </div>

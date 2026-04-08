@@ -1,24 +1,31 @@
 <script>
   import { onMount } from 'svelte';
   import PaintResult from '$lib/components/PaintResult.svelte';
+  import { buildLabCache, findMatches } from '$lib/color-utils.js';
 
   // --- State ---
-  let paintData = $state([]);
+  /** @type {import('$lib/paint-data.js').Paint[]} */
+  let allPaints = $state([]);
+  let labCache = $state(new Map());
   let isLoading = $state(true);
   let query = $state('');
   let isFocused = $state(false);
   let inputRef = $state(null);
 
-  /** @type {any | null} */
-  let selectedEntry = $state(null);
+  /** @type {import('$lib/paint-data.js').Paint | null} */
+  let selectedPaint = $state(null);
   let selectedName = $state('');
 
-  // --- Fetch Data ---
+  /** @type {import('$lib/color-utils.js').PaintMatch[]} */
+  let matches = $state([]);
+
+  // --- Load data ---
   onMount(async () => {
     try {
-      const response = await fetch('api/paints'); 
+      const response = await fetch('api/paints');
       if (!response.ok) throw new Error(`Server responded with ${response.status}`);
-      paintData = await response.json();
+      allPaints = await response.json();
+      labCache = buildLabCache(allPaints);
     } catch (e) {
       console.error("Failed to load paint data:", e);
     } finally {
@@ -26,48 +33,48 @@
     }
   });
 
-  // --- Logic ---
+  // --- Search suggestions ---
   const suggestions = $derived.by(() => {
     if (isLoading || !query || query.trim().length < 2) return [];
-    if (selectedEntry && query === selectedName) return [];
-    
+    if (selectedPaint && query === selectedName) return [];
+
     const norm = query.toLowerCase().trim();
-    const seen = new Set();
-    const matches = [];
-    
-    for (const entry of paintData) {
-      for (const eq of entry.equivalents) {
-        const key = `${eq.name}-${eq.range}`;
-        if (!seen.has(key) && eq.name.toLowerCase().includes(norm)) {
-          seen.add(key);
-          matches.push({ name: eq.name, range: eq.range, hex: entry.hex, entry });
-        }
+    const results = [];
+
+    for (const paint of allPaints) {
+      if (paint.name.toLowerCase().includes(norm)) {
+        results.push(paint);
+        if (results.length >= 8) break;
       }
     }
-    return matches.slice(0, 8);
+    return results;
   });
 
   const showSuggestions = $derived(isFocused && suggestions.length > 0 && query.length >= 2);
 
-  function selectSuggestion(name, entry) {
-    query = name;
-    selectedName = name;
-    selectedEntry = entry;
+  // --- Actions ---
+  function selectPaint(paint) {
+    query = paint.name;
+    selectedName = paint.name;
+    selectedPaint = paint;
+    matches = findMatches(paint, allPaints, labCache);
     isFocused = false;
     inputRef?.blur();
   }
 
   function clearQuery() {
     query = '';
-    selectedEntry = null;
+    selectedPaint = null;
     selectedName = '';
+    matches = [];
     inputRef?.focus();
   }
 
   function handleInput() {
-    if (selectedEntry && query !== selectedName) {
-      selectedEntry = null;
+    if (selectedPaint && query !== selectedName) {
+      selectedPaint = null;
       selectedName = '';
+      matches = [];
     }
   }
 
@@ -108,7 +115,7 @@
             onblur={handleBlur}
             oninput={handleInput}
             type="text"
-            placeholder="Search for a paint name..." 
+            placeholder="Search for a paint name..."
             aria-label="Search paint name"
             autocomplete="off"
             spellcheck="false"
@@ -125,11 +132,11 @@
 
         {#if showSuggestions}
           <div class="suggestions-dropdown">
-            {#each suggestions as s, i (s.name + s.range + i)}
-              <button class="suggestion-item" onclick={() => selectSuggestion(s.name, s.entry)}>
-                <span class="suggestion-swatch" style="background-color: #{s.hex};" aria-hidden="true"></span>
-                <span class="suggestion-name">{s.name}</span>
-                <span class="suggestion-range">{s.range}</span>
+            {#each suggestions as paint (paint.range + paint.name)}
+              <button class="suggestion-item" onclick={() => selectPaint(paint)}>
+                <span class="suggestion-swatch" style="background-color: #{paint.hex};" aria-hidden="true"></span>
+                <span class="suggestion-name">{paint.name}</span>
+                <span class="suggestion-range">{paint.range}</span>
               </button>
             {/each}
           </div>
@@ -139,10 +146,12 @@
   </div>
 
   <section class="results-section">
-    {#if selectedEntry}
-      <p class="result-count">Equivalents for <strong>{selectedName}</strong></p>
+    {#if selectedPaint}
+      <p class="result-count">
+        {matches.length} equivalent{matches.length !== 1 ? 's' : ''} found for <strong>{selectedPaint.name}</strong>
+      </p>
       <div class="results-list">
-        <PaintResult entry={selectedEntry} query={selectedName} />
+        <PaintResult paint={selectedPaint} {matches} query={selectedName} />
       </div>
     {:else if query.trim().length >= 2 && !isFocused && suggestions.length === 0 && !isLoading}
       <div class="empty-state">
@@ -158,7 +167,13 @@
           </svg>
         </div>
         <p class="empty-primary">Search by paint name to find equivalents across brands</p>
-        <p class="empty-secondary">Supports Citadel, Vallejo, Army Painter, Reaper, Scale 75 and more</p>
+        <p class="empty-secondary">
+          {#if isLoading}
+            Loading {0} paints...
+          {:else}
+            {allPaints.length} paints across {new Set(allPaints.map(p => p.range)).size} ranges — matched by color distance (ΔE)
+          {/if}
+        </p>
       </div>
     {/if}
   </section>
@@ -166,7 +181,9 @@
   <footer>
     <div class="footer-inner">
       <p class="footer-note">
-        Colour equivalents are approximate. Always test before committing to a project. Color matcher is based on dakkadakka wiki data and all credits given to them.
+        Equivalents computed using Delta E (CIE76) perceptual color distance.
+        Hex data from <a href="https://github.com/redgrimm/paint-conversion" target="_blank" rel="noopener noreferrer">RedGrimm</a> and <a href="https://www.dakkadakka.com/wiki/en/paint_range_compatibility_chart" target="_blank" rel="noopener noreferrer">DakkaDakka</a>.
+        Always test before committing to a project.
       </p>
       <div class="coffee">
         <p class="coffee-text">Enjoying this tool? Consider supporting its development:</p>
@@ -185,12 +202,11 @@
     flex-direction: column;
   }
 
-  /* --- Sticky Logic --- */
   .sticky-wrapper {
     position: sticky;
     top: 0;
     z-index: 100;
-    background: var(--bg); /* Keeps results from showing behind the bar */
+    background: var(--bg);
     border-bottom: 1px solid var(--border);
   }
 
@@ -201,14 +217,14 @@
   .header-inner {
     max-width: 680px;
     margin: 0 auto;
-    padding: 16px 16px; /* Tightened from 20px */
+    padding: 16px 16px;
     display: flex;
     align-items: center;
     gap: 14px;
   }
 
   .logo-icon {
-    width: 38px; /* Slightly smaller for sticky layout */
+    width: 38px;
     height: 38px;
     border-radius: 10px;
     background: var(--fg);
@@ -234,7 +250,7 @@
   .search-section {
     max-width: 680px;
     margin: 0 auto;
-    padding: 12px 16px 16px; /* Tightened from 28px */
+    padding: 12px 16px 16px;
     width: 100%;
   }
 
@@ -257,13 +273,13 @@
 
   input {
     width: 100%;
-    height: 48px; /* Slightly shorter for sticky layout */
+    height: 48px;
     padding: 0 48px 0 48px;
     background: var(--bg-card);
     color: var(--fg);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    font-size: 16px; /* Prevents iOS Zoom */
+    font-size: 16px;
     font-family: var(--font-sans);
     transition: border-color 0.15s, box-shadow 0.15s;
     outline: none;
@@ -287,7 +303,6 @@
     cursor: pointer;
   }
 
-  /* Suggestions Dropdown */
   .suggestions-dropdown {
     position: absolute;
     top: calc(100% + 8px);
@@ -327,7 +342,6 @@
   .suggestion-name { font-size: 13px; font-weight: 500; }
   .suggestion-range { font-size: 11px; color: var(--fg-muted); margin-left: auto; }
 
-  /* Results Section */
   .results-section {
     max-width: 680px;
     margin: 0 auto;
@@ -365,10 +379,12 @@
 
   .empty-primary { font-size: 14px; color: var(--fg-muted); }
   .empty-secondary { font-size: 12px; color: var(--fg-subtle); margin-top: 6px; }
+  .empty-secondary a { color: var(--fg-muted); text-decoration: underline; text-underline-offset: 2px; }
 
   footer { border-top: 1px solid var(--border); margin-top: auto; }
   .footer-inner { max-width: 680px; margin: 0 auto; padding: 20px 16px 28px; text-align: center; }
-  .footer-note { font-size: 12px; color: var(--fg-subtle); }
+  .footer-note { font-size: 12px; color: var(--fg-subtle); line-height: 1.6; }
+  .footer-note a { color: var(--fg-muted); text-decoration: underline; text-underline-offset: 2px; }
   .coffee { margin-top: 16px; }
   .coffee-text { font-size: 11px; color: var(--fg-muted); margin-bottom: 10px; }
   .coffee-link { display: inline-block; transition: opacity 0.15s ease; }

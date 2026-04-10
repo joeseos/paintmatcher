@@ -42,7 +42,8 @@
     const results = [];
 
     for (const paint of allPaints) {
-      if (paint.name.toLowerCase().includes(norm)) {
+      const combined = `${paint.range} ${paint.name}`.toLowerCase();
+      if (paint.name.toLowerCase().includes(norm) || combined.includes(norm)) {
         results.push(paint);
         if (results.length >= 8) break;
       }
